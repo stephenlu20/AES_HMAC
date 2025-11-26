@@ -97,7 +97,7 @@ public class AES {
     // mixes the data within each column of the state array
     // multiplies each of the four columns of the state by a single fixed matrix, GF(2^8)
     // refer to section 5.1.3 of FIPS 197
-    public static void mixColumns(byte[][] state) {
+    public static byte[][] mixColumns(byte[][] state) {
         for (int c = 0; c < 4; c++) {
             byte s0 = state[0][c];
             byte s1 = state[1][c];
@@ -109,7 +109,35 @@ public class AES {
             state[2][c] = (byte) (s0 ^ s1 ^ galoisField(s2, (byte)0x02) ^ galoisField(s3, (byte)0x03));
             state[3][c] = (byte) (galoisField(s0, (byte)0x03) ^ s1 ^ s2 ^ galoisField(s3, (byte)0x02));
         }
+        return state;
+    }
+
+    // AddRoundKey(); section 5.1.4
+    // round key is combined with the state matrix using XOR operation
+    // each byte of state is XOR'd with the corresponding byte of the round key
+    public static byte[][] addRoundKey(byte[][] state, byte[][] roundKey) {
+        for (int i = 0; i < state.length; i++) {
+            for (int j = 0; state.lenfth; j++) {
+                state[i][j] ^= roundKey[i][j];
+            }
+        }
     }
 
     
+
+    // Cipher psuedocode, as described in section 5.1
+    // procedure CIPHER(in, Nr, w)
+    //     state ← in . See Sec. 3.4
+    //     state ← ADDROUNDKEY(state,w[0..3])
+    //         for round from 1 to Nr −1 do
+    //             state ← SUBBYTES(state)
+    //             state ← SHIFTROWS(state)
+    //             state ← MIXCOLUMNS(state)
+    //             state ← ADDROUNDKEY(state,w[4 ∗ round..4 ∗ round +3])
+    //         end for
+    //     state ← SUBBYTES(state)
+    //     state ← SHIFTROWS(state)
+    //     state ← ADDROUNDKEY(state,w[4 ∗Nr..4 ∗Nr +3])
+    //     return state
+    // end procedure
 }
