@@ -2,8 +2,9 @@ package com.crypto;
 
 public class AES {
 
-    // AES-128, 128 bits; 16 bytes
-    // 4x4 matrix for state
+    // AES-128 -> key length of 128 bits
+    // AES-256 -> key length of 256 bits
+    // 16 bytes, 4x4 matrix for state
 
     // Substitution box
     // Non-linear array of byte values; 0x00 to 0xff
@@ -29,7 +30,7 @@ public class AES {
 };
 
 
-    // Covert byte array to state
+    // Covert byte array to state matrix
     public static byte[][] covertByteArr (byte[] byteArr) {
         byte[][] state = new byte[4][4];
 
@@ -59,5 +60,56 @@ public class AES {
         }
     }
 
+    // Shifting rows
+    // s = sr,(c+r) mod 4 for 0 ≤ r < 4 and 0 ≤ c < 4
+    // for each row i, the row is cyclically shifted to the left i times
+    // refer to section 5.1.2 of FIPS197
+    public static byte[][] shiftRows(byte[][] state) {
+        for (int i = 0; i < state.length; i++) {
+            byte[] tempRow = state[i].clone(); // hold a copy of the row of the state to reference in the shift
+            for (int j = 0; i < state.length; j++) {
+                state[i][j] = tempRow[(i + j) % 4]; // shift the row by i elements
+            }
+        }
+    }
 
+    // Galois Field Multiplication; GF(2^8)
+    // truthfully, the byte math java implementation is going over my head here
+    // bytes cannot be multiplied like normal integres, so the Galois field is used
+    // each byte in state array is interpreted as one of 256 elements of a finite field (called Galois Field or GF(2^8))
+    // each byte in GF(2^8) is represented by a polynomial to define add. and mult.
+    // refer to section 4: Mathematical Preliminaries of FIPS 197
+    // required for doing mixColumns step of the AES cipher
+    private static byte galoisField(byte a, byte b) {
+        byte p = 0;
+        byte hiBitSet;
+        for (int i = 0; i < 8; i++) {
+            if ((b & 1) != 0) p ^= a;
+            hiBitSet = (byte) (a & 0x80);
+            a <<= 1;
+            if (hiBitSet != 0) a ^= 0x1b;
+            b >>= 1;
+        }
+        return p;
+    }
+
+    // mixColumns
+    // mixes the data within each column of the state array
+    // multiplies each of the four columns of the state by a single fixed matrix, GF(2^8)
+    // refer to section 5.1.3 of FIPS 197
+    public static void mixColumns(byte[][] state) {
+        for (int c = 0; c < 4; c++) {
+            byte s0 = state[0][c];
+            byte s1 = state[1][c];
+            byte s2 = state[2][c];
+            byte s3 = state[3][c];
+
+            state[0][c] = (byte) (galoisField(s0, (byte)0x02) ^ galoisField(s1, (byte)0x03) ^ s2 ^ s3);
+            state[1][c] = (byte) (s0 ^ galoisField(s1, (byte)0x02) ^ galoisField(s2, (byte)0x03) ^ s3);
+            state[2][c] = (byte) (s0 ^ s1 ^ galoisField(s2, (byte)0x02) ^ galoisField(s3, (byte)0x03));
+            state[3][c] = (byte) (galoisField(s0, (byte)0x03) ^ s1 ^ s2 ^ galoisField(s3, (byte)0x02));
+        }
+    }
+
+    
 }
