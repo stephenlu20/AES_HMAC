@@ -42,7 +42,7 @@ public class AES {
 
     // Constructor
     // Add AES-192 later
-    public AES(byte[] key) {
+    private AES(byte[] key) {
         if (key.length == 16) { // AES-128
             keySize = 4;
             rounds = 10;
@@ -123,7 +123,7 @@ public class AES {
     // mixes the data within each column of the state array
     // multiplies each of the four columns of the state by a single fixed matrix, GF(2^8)
     // refer to section 5.1.3 of FIPS 197
-    public void mixColumns(byte[][] state) {
+    private void mixColumns(byte[][] state) {
         for (int c = 0; c < 4; c++) {
             byte s0 = state[0][c];
             byte s1 = state[1][c];
@@ -140,7 +140,7 @@ public class AES {
     // AddRoundKey(); section 5.1.4
     // round key is combined with the state matrix using XOR operation
     // each byte of state is XOR'd with the corresponding byte of the round key
-    public void addRoundKey(byte[][] state, byte[][] roundKey) {
+    private void addRoundKey(byte[][] state, byte[][] roundKey) {
         for (int i = 0; i < state.length; i++) {
             for (int j = 0; j < state.length; j++) {
                 state[i][j] ^= roundKey[i][j];
@@ -151,6 +151,10 @@ public class AES {
     // keyExpansion(); section 5.2
     // takes original key and exapnds into multople round keys
     // one key per round
+     private byte[][][] keyExpansion(byte[] key) {
+
+    }
+
 
     // Cipher psuedocode, as described in section 5.1
     // procedure CIPHER(in, Nr, w)
