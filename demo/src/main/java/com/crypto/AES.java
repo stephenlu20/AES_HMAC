@@ -272,7 +272,7 @@ public class AES {
         return convertState(state);
     }
 
-    // Encrypt any length plain text, but has to be multiple of 16
+    // Encrypt longer plain text, but has to be multiple of 16
     public byte[] encryptBlocks(byte[] input) {
         byte[] ciphertext = new byte[input.length];
 
