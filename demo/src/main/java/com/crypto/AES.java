@@ -59,7 +59,7 @@ public class AES {
 
 
     // Covert byte array to state matrix
-    private byte[][] covertByteArr (byte[] byteArr) {
+    private byte[][] convertByteArr (byte[] byteArr) {
         byte[][] state = new byte[4][4];
 
         for (int i = 0; i < 16; i++) {
@@ -80,8 +80,8 @@ public class AES {
     // Substitution method
     // replace each byte in the state with the corresponding byte in the Substitution box
     private void subBytes(byte[][] state) {
-        for (int i = 0; i < state.length; i++) {
-            for (int j = 0; j < state.length; j++) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
                 int sub = state[i][j] & 0xFF;
                 state[i][j] = (byte) S_BOX[sub];
             }
@@ -93,9 +93,9 @@ public class AES {
     // for each row i, the row is cyclically shifted to the left i times
     // refer to section 5.1.2 of FIPS197
     private void shiftRows(byte[][] state) {
-        for (int i = 0; i < state.length; i++) {
+        for (int i = 0; i < 4; i++) {
             byte[] tempRow = new byte[4];
-            for (int j = 0; j < state.length; j++) {
+            for (int j = 0; j < 4; j++) {
                 tempRow[j] = state[i][(j + i) % 4];
             }
             state[i] = tempRow;
@@ -110,8 +110,8 @@ public class AES {
     // refer to section 4: Mathematical Preliminaries of FIPS 197
     // required for doing mixColumns step of the AES cipher
     private byte galoisField(byte a, byte b) {
-        byte p = 0;
-        byte hiBitSet;
+        int p = 0;
+        int hiBitSet;
         for (int i = 0; i < 8; i++) {
             if ((b & 1) != 0) p ^= a;
             hiBitSet = (byte) (a & 0x80);
@@ -119,7 +119,7 @@ public class AES {
             if (hiBitSet != 0) a ^= 0x1b;
             b >>= 1;
         }
-        return p;
+        return (byte)p;
     }
 
     // mixColumns
@@ -144,8 +144,8 @@ public class AES {
     // round key is combined with the state matrix using XOR operation
     // each byte of state is XOR'd with the corresponding byte of the round key
     private void addRoundKey(byte[][] state, byte[][] roundKey) {
-        for (int i = 0; i < state.length; i++) {
-            for (int j = 0; j < state.length; j++) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
                 state[i][j] ^= roundKey[i][j];
             }
         }
@@ -166,7 +166,7 @@ public class AES {
         // every 4 bytes of the key is a word
         for (int i = 0; i < keySize; i++) {
             for (int j = 0; j < 4; j++) {
-                w[i][j] = key[i * 4 + j];
+                w[j][i] = key[i * 4 + j];
             }
         }
 
@@ -183,8 +183,8 @@ public class AES {
 
             if (i % keySize == 0) {
                 temp = substituteWord(rotateWord(temp));
-                rconIndex++;
                 temp[0] ^= (byte) RCON[rconIndex];
+                rconIndex++;
             } else if (keySize == 8 && (i+4) % 8 == 0) {
                 // AES-256 rule
                 temp = substituteWord(temp);
@@ -227,13 +227,11 @@ public class AES {
         return sub;
     }
 
-    //
-
     // Cipher psuedocode, as described in section 5.1
     // procedure CIPHER(in, Nr, w)
-    //     state ← in . See Sec. 3.4
+    //     state ← in
     //     state ← ADDROUNDKEY(state,w[0..3])
-    //         for round from 1 to Nr −1 do
+    //         for round from 1 to Nr − 1 do
     //             state ← SUBBYTES(state)
     //             state ← SHIFTROWS(state)
     //             state ← MIXCOLUMNS(state)
@@ -244,4 +242,33 @@ public class AES {
     //     state ← ADDROUNDKEY(state,w[4 ∗Nr..4 ∗Nr +3])
     //     return state
     // end procedure
+
+    // Encrypt method
+    public byte[] encryptBlock(byte[] input) {
+        if (input.length != 16) {
+            throw new IllegalArgumentException("Expecting 16 bytes. Input is " + String.valueOf(input.length) + " bytes long");
+        }
+
+        // Convert input to 4x4 AES state matrix
+        byte[][] state = convertByteArr(input);
+
+        // Initial Round Key addition
+        addRoundKey(state, roundKeys[0]);
+
+        // Rounds from 1 to Nr - 1
+        for (int round = 1; round < rounds; round++) {
+            subBytes(state);
+            shiftRows(state);
+            mixColumns(state);
+            addRoundKey(state, roundKeys[round]);
+        }
+
+        // Final Round
+        subBytes(state);
+        shiftRows(state);
+        addRoundKey(state, roundKeys[rounds]);
+
+        // Convert state matrix back to byte array
+        return convertState(state);
+    }
 }
