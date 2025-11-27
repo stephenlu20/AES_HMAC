@@ -38,16 +38,16 @@ public class AES {
     // Fixed 10 "words" used for key expansion
     private static int[] RCON = {
         0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
-    }
+    };
 
     // Constructor
     // Add AES-192 later
     public AES(byte[] key) {
         if (key.length == 16) { // AES-128
-            roundKeys = 4;
+            keySize = 4;
             rounds = 10;
         } else if (key.length == 32) { // AES-256
-            roundKeys = 8;
+            keySize = 8;
             rounds = 14;
         }
 
@@ -69,7 +69,7 @@ public class AES {
     private byte[] convertState (byte[][] state) {
         byte[] byteArr = new byte[16];
         for (int i = 0; i < 16; i++) {
-            output[i] = state [i % 4][i / 4];
+            byteArr[i] = state [i % 4][i / 4];
         }
         return byteArr;
     }
@@ -79,7 +79,7 @@ public class AES {
     private void subBytes(byte[][] state) {
         for (int i = 0; i < state.length; i++) {
             for (int j = 0; j < state.length; j++) {
-                int sub = state[i][j] & 0xFF
+                int sub = state[i][j] & 0xFF;
                 state[i][j] = (byte) S_BOX[sub];
             }
         }
@@ -135,15 +135,14 @@ public class AES {
             state[2][c] = (byte) (s0 ^ s1 ^ galoisField(s2, (byte)0x02) ^ galoisField(s3, (byte)0x03));
             state[3][c] = (byte) (galoisField(s0, (byte)0x03) ^ s1 ^ s2 ^ galoisField(s3, (byte)0x02));
         }
-        return state;
     }
 
     // AddRoundKey(); section 5.1.4
     // round key is combined with the state matrix using XOR operation
     // each byte of state is XOR'd with the corresponding byte of the round key
-    public static byte[][] addRoundKey(byte[][] state, byte[][] roundKey) {
+    public void addRoundKey(byte[][] state, byte[][] roundKey) {
         for (int i = 0; i < state.length; i++) {
-            for (int j = 0; state.lenfth; j++) {
+            for (int j = 0; j < state.length; j++) {
                 state[i][j] ^= roundKey[i][j];
             }
         }
