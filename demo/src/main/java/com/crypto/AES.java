@@ -271,4 +271,23 @@ public class AES {
         // Convert state matrix back to byte array
         return convertState(state);
     }
+
+    // Encrypt any length plain text, but has to be multiple of 16
+    public byte[] encryptBlocks(byte[] input) {
+        byte[] ciphertext = new byte[input.length];
+
+        for (int i = 0; i < input.length; i+=16) {
+            byte[] block = new byte[16];
+            for (int j = 0; j < 16; j++) {
+                block[j] = input[i + j];
+            }
+
+            byte[] encryptedBlock = encryptBlock(block);
+
+            for (int j = 0; j < 16; j++) {
+                ciphertext[i + j] = encryptedBlock[j];
+            }
+        }
+        return ciphertext;
+    }
 }
