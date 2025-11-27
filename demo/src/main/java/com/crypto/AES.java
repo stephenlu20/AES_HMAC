@@ -151,10 +151,26 @@ public class AES {
     // keyExpansion(); section 5.2
     // takes original key and exapnds into multople round keys
     // one key per round
-     private byte[][][] keyExpansion(byte[] key) {
-
+    private byte[][][] keyExpansion(byte[] key) {
+        
     }
 
+    // Helper functions as described in 5.2
+
+    // Rotate 4-byte word left by 1 byte
+    private byte[] rotateWord(byte[] word) {
+        byte[] rotated = new byte[]{word[1], word[2], word[3], word[0]};
+        return rotated;
+    }
+
+    // Apply the s-box to each of the 4 bytes in a 4-byte word
+    private byte[] substituteWord(byte[] word) {
+        byte[] sub = new byte[4];
+        for (int i = 0; i < 4; i++) {
+            sub[i] = (byte) S_BOX[word[i] & 0xFF];
+        }
+        return sub;
+    }
 
     // Cipher psuedocode, as described in section 5.1
     // procedure CIPHER(in, Nr, w)
