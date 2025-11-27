@@ -8,7 +8,8 @@ public class AES {
 
     private int keySize;
     private int rounds;
-    private byte[][][] roundKeys; // holds the expansion of keys
+    // holds the expansion of keys
+    private byte[][][] roundKeys; 
 
     // Substitution box
     // Non-linear array of byte values; 0x00 to 0xff
@@ -42,11 +43,13 @@ public class AES {
 
     // Constructor
     // Add AES-192 later
-    private AES(byte[] key) {
-        if (key.length == 16) { // AES-128
+    public AES(byte[] key) {
+        // AES-128
+        if (key.length == 16) { 
             keySize = 4;
             rounds = 10;
-        } else if (key.length == 32) { // AES-256
+        // AES-256
+        } else if (key.length == 32) { 
             keySize = 8;
             rounds = 14;
         }
@@ -92,8 +95,8 @@ public class AES {
     private void shiftRows(byte[][] state) {
         for (int i = 0; i < state.length; i++) {
             byte[] tempRow = new byte[4];
-            for (int j = 0; i < state.length; j++) {
-                tempRow[j] = state[i][(i+j) % 4];
+            for (int j = 0; j < state.length; j++) {
+                tempRow[j] = state[i][(j + i) % 4];
             }
             state[i] = tempRow;
         }
@@ -149,10 +152,62 @@ public class AES {
     }
 
     // keyExpansion(); section 5.2
-    // takes original key and exapnds into multople round keys
+    // takes original key and exapnds into multiple round keys
     // one key per round
     private byte[][][] keyExpansion(byte[] key) {
-        
+        // state always has 4 columns
+        int columns = 4;
+        // generate 4 keys per round, for n + 1 rounds
+        int totalWords = columns * (rounds + 1);
+        // word array is called w[i] in paper
+        byte[][] w = new byte[4][totalWords];
+
+        // loading original key
+        // every 4 bytes of the key is a word
+        for (int i = 0; i < keySize; i++) {
+            for (int j = 0; j < 4; j++) {
+                w[i][j] = key[i * 4 + j];
+            }
+        }
+
+        // key expansion loop
+        // from spec paper, section 5.2:
+        // Every subsequent word w[i] is generated recursively from the
+        // preceding word, w[i−1], and the word Nk positions earlier, w[i−Nk], as follows:
+        // • If i is a multiple of Nk, then w[i] = w[i − Nk] ⊕ SUBWORD(ROTWORD(w[i − 1])) ⊕ Rcon[i/Nk].
+        // • For AES-256, if i+4 is a multiple of 8, then w[i] = w[i−Nk]⊕ SUBWORD(w[i−1]).
+        // • For all other cases, w[i] = w[i−Nk]⊕w[i−1]
+        int rconIndex = 0;
+        for (int i = keySize; i < totalWords; i++) {
+            byte[] temp = { w[0][i-1], w[1][i-1], w[2][i-1], w[3][i-1] };
+
+            if (i % keySize == 0) {
+                temp = substituteWord(rotateWord(temp));
+                rconIndex++;
+                temp[0] ^= (byte) RCON[rconIndex];
+            } else if (keySize == 8 && (i+4) % 8 == 0) {
+                // AES-256 rule
+                temp = substituteWord(temp);
+            }
+            
+            for (int j = 0; j < 4; j++) {
+                w[j][i] = (byte) (w[j][i - keySize] ^ temp[j]);
+            }
+        }
+
+        // key formatting
+        // formats the keys into a 4x4 matrix to use for each round
+        byte[][][] keys = new byte[rounds+1][4][4];
+
+        for (int round = 0; round <= rounds; round++) {
+            for (int column = 0; column < 4; column++) {
+                for (int row = 0; row < 4; row++) {
+                    keys[round][row][column] = w[row][round * 4 + column];
+                }
+            }
+        }
+
+        return keys;
     }
 
     // Helper functions as described in 5.2
@@ -171,6 +226,8 @@ public class AES {
         }
         return sub;
     }
+
+    //
 
     // Cipher psuedocode, as described in section 5.1
     // procedure CIPHER(in, Nr, w)
